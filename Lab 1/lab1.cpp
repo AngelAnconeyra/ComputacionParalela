@@ -31,7 +31,11 @@ Tiempo:249 microsegundos
 // 30
 Tiempo:1222 microsegundos
 // 50
-Tiempo:4741 microsegundos
+Tiempo:5028 microsegundos
+// 100
+Tiempo:41685 microsegundos
+// 1000
+Tiempo:40224288 microsegundos
 
 3. Ejercicio
 // 50 - 5 block
@@ -50,7 +54,6 @@ Tiempo: 45 255 microsegundos
 Tiempo: 48 350 158 microsegundos
 // 1000 - 200 block
 Tiempo: 45 969 910 microsegundos
-comentario
 */
 
 #include <iostream>
@@ -61,7 +64,7 @@ using namespace std;
 const int MAX = 1000;
 
 double A[MAX][MAX], x[MAX], y[MAX];
-int blockSize = 200;
+int blockSize = 1;
 
 void primer_ejercicio(){
     cout<<"Tamaño: "<<MAX<<endl;
@@ -136,7 +139,7 @@ void segundo_tercer_ejercicio(){
     //Tiempo
     auto start_time = chrono::high_resolution_clock::now();
     //Multiplicación clásica
-    /*
+    
     for (int i = 0; i < MAX; ++i) {
         for (int j = 0; j < MAX; ++j) {
             for (int k = 0; k < MAX; ++k) {
@@ -144,12 +147,13 @@ void segundo_tercer_ejercicio(){
             }
         }
     }
-    */
+    
     auto end_time = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
     cout << "Tiempo multipliacion clasica- "<<MAX<<": " << duration.count() << " microsegundos" << endl;
 
     //Multiplicación por bloques
+    /*
     start_time = chrono::high_resolution_clock::now();
     for(int i0 = 0; i0 < MAX; i0 += blockSize){
         for(int j0 = 0; j0 < MAX; j0 += blockSize){
@@ -168,7 +172,7 @@ void segundo_tercer_ejercicio(){
     end_time = chrono::high_resolution_clock::now();
     duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
     cout << "Tiempo multiplicacion por bloques "<<blockSize<<" - "<<MAX<<": " << duration.count() << " microsegundos" << endl;
-
+    */
     /*
     // Mostramos el resultado
     cout << "Resultado de la multiplicación de matrices:" << std::endl;
