@@ -19,10 +19,15 @@ int main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+    // Tiempo de inicio de la ejecución
+    total_tosses = 10;
+    double start_time, end_time;
     if (rank == 0) {
         // Leer el número total de lanzamientos de usuario
-        printf("Ingrese el número total de lanzamientos: ");
-        scanf("%lld", &total_tosses);
+        total_tosses = 10;
+        start_time = MPI_Wtime();
+        //printf("Ingrese el número total de lanzamientos: ");
+        //scanf("%lld", &total_tosses);
     }
 
     // Broadcast del número total de lanzamientos a todos los procesos
@@ -50,6 +55,10 @@ int main(int argc, char *argv[]) {
 
     // Calcular y mostrar el valor estimado de pi en el proceso 0
     if (rank == 0) {
+        end_time = MPI_Wtime();
+        double elapsed_time_ms = (end_time - start_time) * 1000.0; // Conversión a milisegundos
+        printf("Tiempo de ejecución con %d procesos: %f ms\n", size, elapsed_time_ms);
+
         pi_estimate = 4.0 * ((double)number_in_circle_total / (double)total_tosses);
         printf("Estimación de pi: %f\n", pi_estimate);
     }

@@ -1,5 +1,6 @@
 #include <mpi.h>
 #include <stdio.h>
+#include <cmath>
 
 int main(int argc, char *argv[]) {
     int rank, comm_sz;
@@ -9,6 +10,9 @@ int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
+
+    // Iniciar temporizador
+    double start_time = MPI_Wtime();
 
     // Asignar un valor local a cada proceso (usamos el rank para simplificar)
     local_value = rank;
@@ -44,9 +48,13 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Imprimir la suma global en cada proceso activo
+    // Detener temporizador y calcular el tiempo en milisegundos
+    double end_time = MPI_Wtime();
+    double elapsed_time_ms = (end_time - start_time) * 1000;
+
+    // Imprimir la suma global y el tiempo de ejecución en milisegundos en cada proceso activo
     if (rank < active_procs) {
-        printf("Proceso %d tiene la suma global: %d\n", rank, sum);
+        printf("Proceso %d tiene la suma global: %d y tomó %.2f ms\n", rank, sum, elapsed_time_ms);
     }
 
     MPI_Finalize();
