@@ -1,40 +1,72 @@
-
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-pthread_mutex_t rw_mutex = PTHREAD_MUTEX_INITIALIZER;  // Mutex principal
-pthread_cond_t readers_ok = PTHREAD_COND_INITIALIZER;  // Condición para lectores
-pthread_cond_t writers_ok = PTHREAD_COND_INITIALIZER;  // Condición para escritores
+// Definir nodo de lista enlazada
+typedef struct node {
+    int data;
+    struct node* next;
+} node_t;
 
-int readers = 0;  // Número de lectores activos
-int writers = 0;  // Número de escritores activos
-int waiting_writers = 0;  // Escritores esperando
+// Variables compartidas para sincronización
+pthread_mutex_t rw_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t readers_ok = PTHREAD_COND_INITIALIZER;
+pthread_cond_t writers_ok = PTHREAD_COND_INITIALIZER;
 
-// Estructura para datos compartidos
-struct Data {
-    int value;  // Valor compartido
-};
+int readers = 0;           // Número de lectores activos
+int writers = 0;           // Número de escritores activos
+int waiting_writers = 0;   // Número de escritores esperando
 
-// Función para lectores
+node_t* head = NULL;       // Cabeza de la lista enlazada
+
+// Función para insertar en la lista enlazada (escritura)
+void list_insert(int value) {
+    node_t* new_node = (node_t*)malloc(sizeof(node_t));  // Conversión explícita
+    if (new_node == NULL) {  // Verificar que malloc no falle
+        perror("Error al asignar memoria");
+        exit(EXIT_FAILURE);
+    }
+    new_node->data = value;
+    new_node->next = head;
+    head = new_node;
+}
+
+
+// Función para buscar en la lista enlazada (lectura)
+int list_search(int value) {
+    node_t* current = head;
+    while (current != NULL) {
+        if (current->data == value) {
+            return 1;
+        }
+        current = current->next;
+    }
+    return 0;
+}
+
+// Función del lector
 void* reader(void* arg) {
-    struct Data* data = (struct Data*)arg;
-    
+    int value_to_search = *(int*)arg;
+
     pthread_mutex_lock(&rw_mutex);
 
-    // Espera si hay escritores activos o escritores esperando (dar preferencia a los escritores)
+    // Espera si hay escritores activos o esperando
     while (writers > 0 || waiting_writers > 0) {
         pthread_cond_wait(&readers_ok, &rw_mutex);
     }
 
-    readers++;  // Incrementar el número de lectores activos
+    readers++;  // Incrementar lectores activos
     pthread_mutex_unlock(&rw_mutex);
 
-    // Simular lectura
-    printf("Lector está leyendo el valor: %d\n", data->value);
+    // Realizar operación de lectura
+    if (list_search(value_to_search)) {
+        printf("Lector encontró el valor: %d\n", value_to_search);
+    } else {
+        printf("Lector no encontró el valor: %d\n", value_to_search);
+    }
 
     pthread_mutex_lock(&rw_mutex);
-    readers--;  // Decrementar el número de lectores activos
+    readers--;  // Decrementar lectores activos
 
     // Si no hay más lectores, permitir a los escritores continuar
     if (readers == 0) {
@@ -45,30 +77,30 @@ void* reader(void* arg) {
     pthread_exit(NULL);
 }
 
-// Función para escritores
+// Función del escritor
 void* writer(void* arg) {
-    struct Data* data = (struct Data*)arg;
+    int value_to_insert = *(int*)arg;
 
     pthread_mutex_lock(&rw_mutex);
-    waiting_writers++;  // Incrementar el número de escritores esperando
+    waiting_writers++;  // Incrementar escritores esperando
 
     // Espera si hay lectores o escritores activos
     while (readers > 0 || writers > 0) {
         pthread_cond_wait(&writers_ok, &rw_mutex);
     }
 
-    waiting_writers--;  // Decrementar el número de escritores esperando
-    writers++;  // Incrementar el número de escritores activos
+    waiting_writers--;  // Decrementar escritores esperando
+    writers++;  // Incrementar escritores activos
     pthread_mutex_unlock(&rw_mutex);
 
-    // Simular escritura
-    data->value++;  // Modificar el valor compartido
-    printf("Escritor está escribiendo el nuevo valor: %d\n", data->value);
+    // Realizar operación de escritura
+    list_insert(value_to_insert);
+    printf("Escritor insertó el valor: %d\n", value_to_insert);
 
     pthread_mutex_lock(&rw_mutex);
-    writers--;  // Decrementar el número de escritores activos
+    writers--;  // Decrementar escritores activos
 
-    // Dar preferencia a los escritores, si hay alguno esperando
+    // Dar preferencia a escritores si están esperando
     if (waiting_writers > 0) {
         pthread_cond_signal(&writers_ok);
     } else {
@@ -83,8 +115,9 @@ int main(int argc, char* argv[]) {
     int num_readers = 5;
     int num_writers = 2;
 
-    // Inicializar el valor compartido
-    struct Data shared_data = {0};
+    // Valores para buscar e insertar
+    int reader_values[] = {10, 20, 30, 40, 50};
+    int writer_values[] = {25, 35};
 
     // Arreglos para almacenar los threads
     pthread_t reader_threads[num_readers];
@@ -92,12 +125,12 @@ int main(int argc, char* argv[]) {
 
     // Crear hilos de lectores
     for (int i = 0; i < num_readers; i++) {
-        pthread_create(&reader_threads[i], NULL, reader, (void*)&shared_data);
+        pthread_create(&reader_threads[i], NULL, reader, &reader_values[i]);
     }
 
     // Crear hilos de escritores
     for (int i = 0; i < num_writers; i++) {
-        pthread_create(&writer_threads[i], NULL, writer, (void*)&shared_data);
+        pthread_create(&writer_threads[i], NULL, writer, &writer_values[i]);
     }
 
     // Esperar a que los hilos terminen
